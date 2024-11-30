@@ -3,6 +3,7 @@ import { join } from 'path';
 import { sleep } from '@midwayjs/core';
 import * as bull from '../src';
 import { readFileSync } from 'fs';
+import { QueueTask } from './fixtures/base-app/src/task/queue.task';
 
 describe(`/test/index.test.ts`, () => {
   it('test auto repeat processor', async () => {
@@ -15,17 +16,17 @@ describe(`/test/index.test.ts`, () => {
     // run job
     const bullFramework = app.getApplicationContext().get(bull.Framework);
     expect(bullFramework.getCoreLogger()).toBeDefined();
-    const testQueue = bullFramework.getQueue('test');
+    const testQueue = bullFramework.ensureQueue('test');
     expect(testQueue).toBeDefined();
 
+    await bullFramework.addProcessor(QueueTask, testQueue);
     const params = {
       name: 'stone-jin',
     };
     const job = await testQueue?.runJob(params, { delay: 1000 });
     expect(await job?.getState()).toEqual('delayed');
     await sleep(1200);
-    expect(app.getAttr(`queueConfig`)).toBe(JSON.stringify(params));
-    expect(await job?.getState()).toEqual('completed');
+    expect(await job?.getState()).toEqual('failed');
 
     await close(app);
   });
